@@ -99,10 +99,9 @@ public class YarnAuditAnalyzer extends AbstractNpmAnalyzer {
         if (!packageLock.isFile() || packageLock.length() == 0 || !shouldProcess(packageLock)) {
             return;
         }
-        final File packageJson = new File(packageLock.getParentFile(), "package.json");
         final List<Advisory> advisories;
         final MultiValuedMap<String, String> dependencyMap = new HashSetValuedHashMap<>();
-        advisories = analyzePackage(packageLock, packageJson, dependency, dependencyMap);
+        advisories = analyzePackage(packageLock, dependency, dependencyMap);
         try {
             processResults(advisories, engine, dependency, dependencyMap);
         } catch (CpeValidationException ex) {
@@ -262,7 +261,6 @@ public class YarnAuditAnalyzer extends AbstractNpmAnalyzer {
      * submitting the payload, and returning the identified advisories.
      *
      * @param lockFile a reference to the package-lock.json
-     * @param packageFile a reference to the package.json
      * @param dependency a reference to the dependency-object for the yarn.lock
      * @param dependencyMap a collection of module/version pairs; during
      * creation of the payload the dependency map is populated with the
@@ -271,20 +269,15 @@ public class YarnAuditAnalyzer extends AbstractNpmAnalyzer {
      * @throws AnalysisException thrown when there is an error creating or
      * submitting the npm audit API payload
      */
-    private List<Advisory> analyzePackage(final File lockFile, final File packageFile,
-            Dependency dependency, MultiValuedMap<String, String> dependencyMap)
+    private List<Advisory> analyzePackage(final File lockFile, Dependency dependency,
+                                          MultiValuedMap<String, String> dependencyMap)
             throws AnalysisException {
         try {
             final boolean skipDevDependencies = getSettings().getBoolean(Settings.KEYS.ANALYZER_NODE_AUDIT_SKIPDEV, false);
             // Retrieves the contents of package-lock.json from the Dependency
             final JsonObject lockJson = fetchYarnAuditJson(dependency, skipDevDependencies);
-            // Retrieves the contents of package-lock.json from the Dependency
-            final JsonObject packageJson;
-            try (final JsonReader packageReader = Json.createReader(Files.newInputStream(packageFile.toPath()))) {
-                packageJson = packageReader.readObject();
-            }
             // Modify the payload to meet the NPM Audit API requirements
-            final JsonObject payload = NpmPayloadBuilder.build(lockJson, packageJson, dependencyMap, skipDevDependencies);
+            final JsonObject payload = NpmPayloadBuilder.build(lockJson, dependencyMap, skipDevDependencies);
 
             // Submits the package payload to the nsp check service
             return getSearcher().submitPackage(payload);

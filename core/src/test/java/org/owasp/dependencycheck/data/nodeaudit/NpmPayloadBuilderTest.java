@@ -152,12 +152,10 @@ public class NpmPayloadBuilderTest {
     @Test
     public void testPayloadWithLockAndPackage() {
         InputStream lock = BaseTest.getResourceAsStream(this, "nodeaudit/package-lock.json");
-        InputStream json = BaseTest.getResourceAsStream(this, "nodeaudit/package.json");
         final MultiValuedMap<String, String> dependencyMap = new HashSetValuedHashMap<>();
-        try (JsonReader jsonReader = Json.createReader(json); JsonReader lockReader = Json.createReader(lock)) {
-            JsonObject packageJson = jsonReader.readObject();
+        try (JsonReader lockReader = Json.createReader(lock)) {
             JsonObject lockJson =    lockReader.readObject();
-            JsonObject sanitized = NpmPayloadBuilder.build(lockJson, packageJson, dependencyMap, false);
+            JsonObject sanitized = NpmPayloadBuilder.build(lockJson, dependencyMap, false);
 
             Assert.assertTrue(sanitized.containsKey("name"));
             Assert.assertTrue(sanitized.containsKey("version"));
